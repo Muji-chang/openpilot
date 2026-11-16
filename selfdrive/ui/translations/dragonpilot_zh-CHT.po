@@ -586,6 +586,14 @@ msgstr "掃描以存取"
 msgid "sec"
 msgstr "秒"
 
+#: dragonpilot/settings/min-feat.ui.lead-depart-alert.py
+msgid "Lead Departure Alert"
+msgstr "前車駛離提醒"
+
+#: dragonpilot/settings/min-feat.ui.lead-depart-alert.py
+msgid "Play a chime and show an alert when the lead vehicle drives away while your vehicle is stopped."
+msgstr "車輛停在 D 檔且未啟用 openpilot 時，前車駛離會發出提示音並顯示提醒。"
+
 #, python-format
 #~ msgid " km/h"
 #~ msgstr " 公里/時"

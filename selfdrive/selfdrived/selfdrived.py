@@ -24,6 +24,7 @@ from openpilot.selfdrive.selfdrived.alertmanager import AlertManager, set_offroa
 from openpilot.system.version import get_build_metadata
 from openpilot.system.hardware import HARDWARE
 from opendbc.safety import ALTERNATIVE_EXPERIENCE
+from dragonpilot.selfdrive.controls.lib.lead_departure_alert import LeadDepartureAlert
 
 REPLAY = "REPLAY" in os.environ
 SIMULATION = "SIMULATION" in os.environ or os.getenv("LITE") is not None
@@ -128,6 +129,7 @@ class SelfdriveD:
     self.recalibrating_seen = False
     self.dm_lockout_set = False
     self.dm_uncertain_alerted = False
+    self.lead_departure_alert = LeadDepartureAlert(self.params)
     self.state_machine = StateMachine(self.alka)
     self.rk = Ratekeeper(100, print_delay_threshold=None)
 
@@ -183,6 +185,11 @@ class SelfdriveD:
 
     if self.sm.updated['audioFeedback']:
       self.events.add(EventName.audioFeedback)
+
+    if self.sm.updated['radarState']:
+      inputs_valid = CS.canValid and self.sm.all_checks(['carControl', 'radarState'])
+      if self.lead_departure_alert.update(CS, self.sm['carControl'], self.sm['radarState'], inputs_valid=inputs_valid):
+        self.events.add(EventName.leadDeparture)
 
     # Don't add any more events while in dashcam mode
     if self.CP.passive:

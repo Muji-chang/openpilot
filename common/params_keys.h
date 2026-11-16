@@ -162,5 +162,6 @@ inline static std::unordered_map<std::string, ParamKeyAttributes> keys = {
     {"dp_ui_display_mode", {PERSISTENT, INT, "0"}},
     {"dp_ui_hide_hud_speed_kph", {PERSISTENT, INT, "0"}},
     {"dp_ui_lead", {PERSISTENT, INT, "0"}},
+    {"dp_ui_lead_depart_alert", {PERSISTENT, BOOL, "0"}},
     {"dp_ui_rainbow", {PERSISTENT, BOOL, "0"}},
 };
