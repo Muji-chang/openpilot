@@ -10,7 +10,7 @@ ITEMS = [
     "condition": "openpilotLongitudinalControl",
     "flags": "PERSISTENT",
     "param_type": "BOOL",
-    "default": "0",
+    "default": "1",
   },
   {
     "section": "Longitudinal",
@@ -21,6 +21,6 @@ ITEMS = [
     "condition": "openpilotLongitudinalControl",
     "flags": "PERSISTENT",
     "param_type": "BOOL",
-    "default": "0",
+    "default": "1",
   },
 ]

@@ -7,7 +7,7 @@ ITEMS = [
     "type": "toggle_item",
     "title": lambda: tr("Lead Departure Alert"),
     "description": lambda: tr("Play a chime and show an alert when the lead vehicle drives away while your vehicle is stopped."),
-    "default": "0",
+    "default": "1",
     "flags": "PERSISTENT",
     "param_type": "BOOL",
   },
