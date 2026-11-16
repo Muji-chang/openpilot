@@ -594,6 +594,22 @@ msgstr "前車駛離提醒"
 msgid "Play a chime and show an alert when the lead vehicle drives away while your vehicle is stopped."
 msgstr "車輛停在 D 檔且未啟用 openpilot 時，前車駛離會發出提示音並顯示提醒。"
 
+#: dragonpilot/settings/min-feat.lon.ocm.py
+msgid "Overtaking Coasting Mode (OCM)"
+msgstr "超車滑行模式 (OCM)"
+
+#: dragonpilot/settings/min-feat.lon.ocm.py
+msgid "Coast toward the set speed after overtaking. Starts at 50 km/h or above and at least 2 km/h over the set speed."
+msgstr "超車後滑行至設定速度。車速達 50 公里/小時且比定速快至少 2 公里/小時才會開始。"
+
+#: dragonpilot/settings/min-feat.lon.ocm.py
+msgid "Early Coasting"
+msgstr "提早滑行"
+
+#: dragonpilot/settings/min-feat.lon.ocm.py
+msgid "Ease off the accelerator near the set speed or when approaching a slower vehicle ahead."
+msgstr "接近設定速度或前方慢車時提早收油。"
+
 #, python-format
 #~ msgid " km/h"
 #~ msgstr " 公里/時"

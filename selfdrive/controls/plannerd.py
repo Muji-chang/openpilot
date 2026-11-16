@@ -30,6 +30,10 @@ def main():
     dp_flags |= DPFlags.AEM
   if params.get_bool("dp_lon_apm"):
     dp_flags |= DPFlags.APM
+  if params.get_bool("dp_lon_ocm"):
+    dp_flags |= DPFlags.OCM
+  if params.get_bool("dp_lon_early_coast"):
+    dp_flags |= DPFlags.EARLY_COAST
 
   while True:
     sm.update()

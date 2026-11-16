@@ -17,6 +17,7 @@ from openpilot.common.swaglog import cloudlog
 from dragonpilot.selfdrive.controls.lib.acm import ACM
 from dragonpilot.selfdrive.controls.lib.aem import AEM
 from dragonpilot.selfdrive.controls.lib.apm import APM
+from dragonpilot.selfdrive.controls.lib.ocm import OCM, limit_accel_for_early_coast
 
 A_CRUISE_MAX_VALS = [1.6, 1.2, 0.8, 0.6]
 A_CRUISE_MAX_BP = [0., 10.0, 25., 40.]
@@ -32,6 +33,8 @@ class DPFlags:
   ACM = 1
   AEM = 2
   APM = 2 ** 2
+  OCM = 2 ** 3
+  EARLY_COAST = 2 ** 4
   pass
 
 
@@ -75,6 +78,7 @@ class LongitudinalPlanner:
     self.acm = ACM()
     self.aem = AEM()
     self.apm = APM()
+    self.ocm = OCM()
 
   @staticmethod
   def parse_model(model_msg):
@@ -152,7 +156,7 @@ class LongitudinalPlanner:
     self.v_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.v_solution)
     self.a_desired_trajectory = np.interp(CONTROL_N_T_IDX, T_IDXS_MPC, self.mpc.a_solution)
     # ACM - Adaptive Coasting Module
-    if dp_flags & DPFlags.ACM:
+    if dp_flags & DPFlags.ACM and not (dp_flags & DPFlags.OCM):
       user_control = long_control_off if self.CP.openpilotLongitudinalControl else not sm['selfdriveState'].enabled
       self.acm.update_states(sm['carControl'], sm['radarState'], user_control, v_ego, v_cruise)
       self.a_desired_trajectory = self.acm.update_a_desired_trajectory(self.a_desired_trajectory)
@@ -178,6 +182,25 @@ class LongitudinalPlanner:
     if dp_flags & DPFlags.AEM:
       self.aem.update_states(model_msg=sm['modelV2'], radar_msg=sm['radarState'], v_ego=sm['carState'].vEgo)
       mode = self.aem.get_mode(mode)
+
+    if dp_flags & (DPFlags.OCM | DPFlags.EARLY_COAST):
+      cs = sm['carState']
+      cc = sm['carControl']
+      lead = sm['radarState'].leadOne
+      can_coast = (self.CP.openpilotLongitudinalControl and cc.longActive and not reset_state and
+                   not cs.gasPressed and not cs.brakePressed and not force_slow_decel and
+                   not self.fcw and not output_should_stop_mpc and
+                   sm.all_checks(['carState', 'carControl', 'radarState', 'modelV2']))
+
+      if dp_flags & DPFlags.OCM:
+        # OCM can replace a cruise request. Leave braking for a lead or a stop to the planner.
+        cruise_coasting = (can_coast and self.mpc.source == LongitudinalPlanSource.cruise and
+                           (mode == 'acc' or not output_should_stop_e2e))
+        self.ocm.update(cruise_coasting, cc.orientationNED, lead, v_ego, v_cruise)
+        output_a_target_mpc = self.ocm.get_accel_target(output_a_target_mpc, self.a_desired_trajectory, accel_coast)
+
+      if can_coast and mode == 'acc' and dp_flags & DPFlags.EARLY_COAST:
+        accel_clip[1] = limit_accel_for_early_coast(v_ego, v_cruise, accel_clip[1], lead)
 
     if mode == 'blended':
       output_a_target = min(output_a_target_e2e, output_a_target_mpc)
