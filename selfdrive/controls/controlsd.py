@@ -106,7 +106,14 @@ class Controls:
       calibrated = self.sm['liveCalibration'].calStatus == log.LiveCalibrationData.Status.calibrated
       gear_ok = CS.gearShifter not in (car.CarState.GearShifter.park, car.CarState.GearShifter.neutral, car.CarState.GearShifter.reverse)
       self.alka_active = lkas_on and gear_ok and calibrated and not CS.seatbeltUnlatched and not CS.doorOpen
-    CC.latActive = (self.sm['selfdriveState'].active or self.alka_active) and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
+
+    # Let the driver steer while either turn signal is active.
+    lat_active = self.sm['selfdriveState'].active or self.alka_active
+    if CS.leftBlinker or CS.rightBlinker:
+      lat_active = False
+      self.alka_active = False
+
+    CC.latActive = lat_active and not CS.steerFaultTemporary and not CS.steerFaultPermanent and \
                    (not standstill or self.CP.steerAtStandstill)
     CC.longActive = CC.enabled and not any(e.overrideLongitudinal for e in self.sm['onroadEvents']) and self.CP.openpilotLongitudinalControl
 
