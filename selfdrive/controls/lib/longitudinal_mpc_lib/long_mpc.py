@@ -52,6 +52,8 @@ T_IDXS_LST = [index_function(idx, max_val=MAX_T, max_idx=N) for idx in range(N+1
 
 T_IDXS = np.array(T_IDXS_LST)
 FCW_IDXS = T_IDXS < 5.0
+COAST_FOLLOW_IDXS = T_IDXS < 5.0  # consider leads that constrain cruise within five seconds
+COAST_CONFIRM_TIME = 0.25  # s of continuous eligibility before enabling
 T_DIFFS = np.diff(T_IDXS, prepend=[0.])
 COMFORT_BRAKE = 2.5
 STOP_DISTANCE = 6.0
@@ -243,6 +245,7 @@ class LongitudinalMpc:
     self.status = False
     self.crash_cnt = 0.0
     self.solution_status = 0
+    self._coast_follow_time = 0.0
     # timers
     self.solve_time = 0.0
     self.time_qp_solution = 0.0
@@ -313,7 +316,8 @@ class LongitudinalMpc:
     lead_xv = self.extrapolate_lead(x_lead, v_lead, a_lead, a_lead_tau)
     return lead_xv
 
-  def update(self, radarstate, v_cruise, personality=log.LongitudinalPersonality.standard):
+  def update(self, radarstate, v_cruise, personality=log.LongitudinalPersonality.standard, *,
+             cruise_coast: tuple[float, float] | None = None):
     t_follow = get_T_FOLLOW(personality)
     v_ego = self.x0[1]
     self.status = radarstate.leadOne.status or radarstate.leadTwo.status
@@ -334,6 +338,18 @@ class LongitudinalMpc:
     v_upper = v_ego + (T_IDXS * CRUISE_MAX_ACCEL * 1.05)
     v_cruise_clipped = np.clip(v_cruise * np.ones(N+1), v_lower, v_upper)
     cruise_obstacle = np.cumsum(T_DIFFS * v_cruise_clipped) + get_safe_obstacle_distance(v_cruise_clipped, t_follow)
+
+    if (cruise_coast is not None and self.status and
+        np.any(np.minimum(lead_0_obstacle, lead_1_obstacle)[COAST_FOLLOW_IDXS] < cruise_obstacle[COAST_FOLLOW_IDXS])):
+      self._coast_follow_time += self.dt
+      if self._coast_follow_time >= COAST_CONFIRM_TIME:
+        # Ease off earlier while following. Both lead obstacles remain in the solve.
+        floor_speed, coast_accel = cruise_coast
+        coast_speeds = np.minimum(v_cruise_clipped, np.maximum(floor_speed, v_ego + T_IDXS * coast_accel))
+        coast_obstacle = np.cumsum(T_DIFFS * coast_speeds) + get_safe_obstacle_distance(coast_speeds, t_follow)
+        cruise_obstacle = np.minimum(cruise_obstacle, coast_obstacle)
+    else:
+      self._coast_follow_time = 0.0
 
     x_obstacles = np.column_stack([lead_0_obstacle, lead_1_obstacle, cruise_obstacle])
     self.source = MPC_SOURCES[np.argmin(x_obstacles[0])]

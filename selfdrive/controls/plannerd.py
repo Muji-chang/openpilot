@@ -34,6 +34,8 @@ def main():
     dp_flags |= DPFlags.OCM
   if params.get_bool("dp_lon_early_coast"):
     dp_flags |= DPFlags.EARLY_COAST
+  if params.get_bool("dp_lon_low_speed_coast"):
+    dp_flags |= DPFlags.LOW_SPEED_COAST
 
   while True:
     sm.update()

@@ -23,4 +23,15 @@ ITEMS = [
     "param_type": "BOOL",
     "default": "1",
   },
+  {
+    "section": "Longitudinal",
+    "key": "dp_lon_low_speed_coast",
+    "type": "toggle_item",
+    "title": lambda: tr("Low Speed Coasting"),
+    "description": lambda: tr("Ease off earlier from 15 to under 50 km/h when ACC is following a moving vehicle with enough room."),
+    "condition": "openpilotLongitudinalControl",
+    "flags": "PERSISTENT",
+    "param_type": "BOOL",
+    "default": "0",
+  },
 ]

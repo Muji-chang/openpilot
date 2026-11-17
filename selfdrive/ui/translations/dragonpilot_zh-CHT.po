@@ -610,6 +610,14 @@ msgstr "提早滑行"
 msgid "Ease off the accelerator near the set speed or when approaching a slower vehicle ahead."
 msgstr "接近設定速度或前方慢車時提早收油。"
 
+#: dragonpilot/settings/min-feat.lon.ocm.py
+msgid "Low Speed Coasting"
+msgstr "低速滑行"
+
+#: dragonpilot/settings/min-feat.lon.ocm.py
+msgid "Ease off earlier from 15 to under 50 km/h when ACC is following a moving vehicle with enough room."
+msgstr "車速達 15 且低於 50 公里/小時，ACC 跟隨行進中的前車且車距足夠時，會提早收油滑行。"
+
 #, python-format
 #~ msgid " km/h"
 #~ msgstr " 公里/時"
