@@ -239,7 +239,7 @@ function launch {
   # start manager
   cd system/manager
   if [ ! -f $DIR/prebuilt ]; then
-    ./build.py
+    ./build.py --reuse-build || exit $?
   fi
   ./manager.py
 

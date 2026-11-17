@@ -1,19 +1,23 @@
 from pathlib import Path
 import importlib.util
 
+from openpilot.selfdrive.assets.fonts.process import font_atlases
+
 Import('env', 'arch', 'common')
 
 # build the fonts
 generator = File("#selfdrive/assets/fonts/process.py")
 source_files = Glob("#selfdrive/assets/fonts/*.ttf") + Glob("#selfdrive/assets/fonts/*.otf")
+translations = (Glob("#selfdrive/ui/translations/languages.json") + Glob("#selfdrive/ui/translations/app_*.po")
+                + Glob("#selfdrive/ui/translations/dragonpilot_*.mo"))
 output_files = [
-  (f"#{Path(f.path).with_suffix('.fnt')}", f"#{Path(f.path).with_suffix('.png')}")
-  for f in source_files
-  if "NotoColor" not in f.name
+  str(font.with_name(f'{atlas}.{ext}'))
+  for font, atlas, _ in font_atlases(Path(f.abspath) for f in source_files)
+  for ext in ('fnt', 'png')
 ]
 env.Command(
   target=output_files,
-  source=[generator, source_files],
+  source=[generator, source_files, translations],
   action=f"python3 {generator}",
 )
 

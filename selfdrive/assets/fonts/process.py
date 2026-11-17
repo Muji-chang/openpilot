@@ -3,8 +3,6 @@ from pathlib import Path
 import gettext
 import json
 
-import pyray as rl
-
 FONT_DIR = Path(__file__).resolve().parent
 SELFDRIVE_DIR = FONT_DIR.parents[1]
 TRANSLATIONS_DIR = SELFDRIVE_DIR / "ui" / "translations"
@@ -20,6 +18,28 @@ def _languages():
     return {}
   with LANGUAGES_FILE.open(encoding="utf-8") as f:
     return json.load(f)
+
+
+def font_atlases(fonts):
+  per_lang = dict.fromkeys(code for code in _languages().values()
+                          if code in UNIFONT_LANGUAGES and (TRANSLATIONS_DIR / f'app_{code}.po').is_file())
+  opfonts = []
+  for font in fonts:
+    if "emoji" in font.name.lower() or font.name == "unifont.otf":
+      continue
+    if font.stem.lower().startswith("opfont"):
+      opfonts.append(font)
+    else:
+      yield font, font.stem, None
+
+  if not opfonts:
+    raise RuntimeError("OpFont not found (expected OpFont-*.otf in fonts dir)")
+
+  # OpFont uses an atlas for the language selector and one per supported language.
+  for font in opfonts:
+    yield font, f'{font.stem}-Labels', 'Labels'
+    for code in per_lang:
+      yield font, f'{font.stem}-{code}', code
 
 
 def _dragonpilot_chars(code: str) -> set[str]:
@@ -113,8 +133,9 @@ def _write_bmfont(path: Path, font_size: int, face: str, atlas_name: str, line_h
   path.write_text("\n".join(lines) + "\n")
 
 
-def _process_font(font_path: Path, codepoints: tuple[int, ...], output_name: str | None = None):
-  stem = output_name or font_path.stem
+def _process_font(font_path: Path, codepoints: tuple[int, ...], stem: str):
+  import pyray as rl
+
   font_size = 48 if font_path.stem.lower().startswith("opfont") else 200
   print(f"Processing {font_path.name} -> {stem} ({len(codepoints)} glyphs @ {font_size}px)...")
 
@@ -148,29 +169,10 @@ def _process_font(font_path: Path, codepoints: tuple[int, ...], output_name: str
 
 def main():
   base_cp, labels_cp, per_lang = _char_sets()
+  codepoints = {None: base_cp, 'Labels': labels_cp, **per_lang}
   fonts = sorted(FONT_DIR.glob("*.ttf")) + sorted(FONT_DIR.glob("*.otf"))
-  opfonts: list[Path] = []
-
-  for font in fonts:
-    if "emoji" in font.name.lower() or font.name == "unifont.otf":
-      continue
-    if font.stem.lower().startswith("opfont"):
-      opfonts.append(font)
-      continue
-    _process_font(font, base_cp)
-
-  if not opfonts:
-    raise RuntimeError("OpFont not found (expected OpFont-*.otf in fonts dir)")
-
-  for opfont_path in opfonts:
-    weight = opfont_path.stem  # e.g. "OpFont-Regular"
-
-    # Labels atlas: language display names + ASCII (for language selector)
-    _process_font(opfont_path, labels_cp, output_name=f"{weight}-Labels")
-
-    # Per-language atlases: ASCII + that language's .po chars
-    for lang_code, lang_cp in per_lang.items():
-      _process_font(opfont_path, lang_cp, output_name=f"{weight}-{lang_code}")
+  for font, atlas, charset in font_atlases(fonts):
+    _process_font(font, codepoints[charset], atlas)
 
   return 0
 

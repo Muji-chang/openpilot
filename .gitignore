@@ -9,6 +9,8 @@ venv/
 .idea
 .overlay_init
 .overlay_consistent
+/.mujitest_build.json
+/.mujitest_build.lock
 .sconsign.dblite
 a.out
 .hypothesis

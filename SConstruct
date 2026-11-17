@@ -1,3 +1,4 @@
+import json
 import os
 import subprocess
 import sys
@@ -8,6 +9,7 @@ import importlib
 import numpy as np
 
 import SCons.Errors
+from SCons.Node.FS import File as FileNode
 from SCons.Defaults import _stripixes
 
 TICI = os.path.isfile('/TICI')
@@ -276,7 +278,7 @@ if GetOption('extras') and arch != "larch64":
 env.CompilationDatabase('compile_commands.json')
 
 # progress output
-def count_scons_nodes(nodes):
+def get_build_nodes(nodes):
   seen = set()
   stack = list(nodes)
 
@@ -289,11 +291,28 @@ def count_scons_nodes(nodes):
     if executor is not None:
       stack += executor.get_all_prerequisites() + executor.get_all_children()
 
-  return len(seen)
+  return seen
+
+build_nodes = get_build_nodes(env.arg2nodes(BUILD_TARGETS or [Dir('.')], env.fs.Entry))
+
+# The boot launcher records these files only after SCons exits successfully.
+if build_inventory := os.environ.get('MUJITEST_BUILD_INVENTORY'):
+  root = Dir('#').abspath
+  targets = set()
+  for node in build_nodes:
+    if node.has_builder():
+      for target in node.get_executor().get_all_targets():
+        if isinstance(target, FileNode) and target.has_explicit_builder():
+          targets.add(os.path.relpath(target.abspath, root))
+  try:
+    with open(build_inventory, 'w', encoding='utf-8') as f:
+      json.dump(sorted(targets), f)
+  except OSError as e:
+    print(f'Could not write SCons artifact inventory: {e}', file=sys.stderr)
 
 progress_interval = 5
 progress_count = 0
-progress_total = max(1, count_scons_nodes(env.arg2nodes(BUILD_TARGETS or [Dir('.')], env.fs.Entry)))
+progress_total = max(1, len(build_nodes))
 
 def progress_function(node):
   global progress_count
